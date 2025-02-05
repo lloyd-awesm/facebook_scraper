@@ -1,3 +1,5 @@
+import os
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -8,6 +10,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 import time
 import re
+
+# Get the URL from environment variable
+url = os.environ.get('REPORT_URL', 'default_url_if_not_set')
 
 def setup_driver():
     chrome_options = Options()
@@ -114,5 +119,4 @@ def scrape_facebook_report(url):
         driver.quit()
 
 if __name__ == "__main__":
-    url = "https://www.facebook.com/adsviewreport/?saved_report_id=120216194126900650&client_creation_value=f54f992787004415e"
     df = scrape_facebook_report(url)
