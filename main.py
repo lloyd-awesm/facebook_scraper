@@ -16,8 +16,17 @@ url = os.environ.get('REPORT_URL', 'default_url_if_not_set')
 
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--headless")  # Run in headless mode
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--disable-gpu")
+    
     service = Service(ChromeDriverManager().install())
+    
+    # Specify a unique user data directory
+    chrome_options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{os.getpid()}")
+    
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     return driver
