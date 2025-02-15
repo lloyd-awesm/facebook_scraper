@@ -106,19 +106,33 @@ def scrape_facebook_report(url):
         print("Accessing the page...")
         driver.get(url)
         print("Waiting for page to fully load...")
-        time.sleep(15)  # Increased wait time
         
-        # Scroll to ensure all content is loaded
-        last_height = driver.execute_script("return document.body.scrollHeight")
-        while True:
+        # Wait for date range to be visible and print it
+        time.sleep(15)
+        date_range = driver.find_element(By.CSS_SELECTOR, "[aria-label*='Date range']")
+        print(f"Found date range: {date_range.text}")
+        
+        # Force table to expand
+        try:
+            show_more = driver.find_element(By.XPATH, "//div[contains(text(), 'Show more')]")
+            driver.execute_script("arguments[0].click();", show_more)
+            print("Clicked 'Show more' button")
+            time.sleep(5)
+        except:
+            print("No 'Show more' button found")
+        
+        # Scroll multiple times with pauses
+        for i in range(3):
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(3)
+            driver.execute_script("window.scrollTo(0, 0);")
             time.sleep(2)
-            new_height = driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
+            print(f"Completed scroll iteration {i+1}")
         
-        # Only get the content once
+        # Take debug screenshot
+        driver.save_screenshot("before_extraction.png")
+        
+        # Get content after ensuring everything is loaded
         all_divs = driver.find_elements(By.TAG_NAME, "div")
         longest_content = ""
         
@@ -126,7 +140,7 @@ def scrape_facebook_report(url):
             try:
                 text = div.text
                 if "BOF - Leads" in text:
-                    # Keep the longest content that contains our data
+                    print(f"Found content length: {len(text)}")
                     if len(text) > len(longest_content):
                         longest_content = text
             except:
@@ -134,7 +148,9 @@ def scrape_facebook_report(url):
         
         if longest_content:
             print("\nFound relevant content:")
-            print(longest_content[:200] + "...")  # Print preview
+            print(f"Total content length: {len(longest_content)}")
+            print("Content preview:")
+            print(longest_content[:500] + "...")
             return parse_and_save_to_csv(longest_content)
             
         return None
@@ -145,7 +161,7 @@ def scrape_facebook_report(url):
         print(traceback.format_exc())
     finally:
         driver.save_screenshot("final_state.png")
-        print("Saved screenshot")
+        print("Saved final screenshot")
         driver.quit()
 
 if __name__ == "__main__":
