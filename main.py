@@ -16,23 +16,27 @@ url = os.environ.get('REPORT_URL', 'default_url_if_not_set')
 
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in headless mode
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--incognito")  # Add incognito mode
-    chrome_options.add_argument("--disable-cache")  # Disable cache
+    chrome_options.add_argument("--incognito")
+    chrome_options.add_argument("--disable-cache")
     chrome_options.add_argument("--disable-application-cache")
-    chrome_options.add_argument("--disable-offline-load-stale-cache")
-    chrome_options.add_argument("--disk-cache-size=0")
     chrome_options.add_argument("--disable-browser-side-navigation")
+    
+    # Add these new parameters
+    prefs = {
+        "profile.default_content_setting_values.cookies": 2,
+        "profile.block_third_party_cookies": True,
+        "profile.default_content_settings.popups": 0,
+        "profile.default_content_settings.notifications": 2
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
     
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.maximize_window()
     
-    # Clear any existing cache
+    # Clear cache and cookies
     driver.execute_cdp_cmd('Network.clearBrowserCache', {})
     driver.execute_cdp_cmd('Network.clearBrowserCookies', {})
     
@@ -101,8 +105,18 @@ def scrape_facebook_report(url):
     try:
         print("Accessing the page...")
         driver.get(url)
-        print("Waiting for page to load completely...")
-        time.sleep(10)  # Increased wait time
+        print("Waiting for page to fully load...")
+        time.sleep(15)  # Increased wait time
+        
+        # Scroll to ensure all content is loaded
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        while True:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
         
         # Only get the content once
         all_divs = driver.find_elements(By.TAG_NAME, "div")
