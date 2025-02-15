@@ -124,7 +124,6 @@ def scrape_facebook_report(url):
     finally:
         driver.save_screenshot("final_state.png")
         print("Saved screenshot")
-        input("Press Enter to close the browser...")
         driver.quit()
 
 if __name__ == "__main__":
