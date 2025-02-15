@@ -21,14 +21,21 @@ def setup_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--incognito")  # Add incognito mode
+    chrome_options.add_argument("--disable-cache")  # Disable cache
+    chrome_options.add_argument("--disable-application-cache")
+    chrome_options.add_argument("--disable-offline-load-stale-cache")
+    chrome_options.add_argument("--disk-cache-size=0")
+    chrome_options.add_argument("--disable-browser-side-navigation")
     
     service = Service(ChromeDriverManager().install())
-    
-    # Specify a unique user data directory
-    chrome_options.add_argument(f"--user-data-dir=/tmp/chrome-user-data-{os.getpid()}")
-    
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
+    
+    # Clear any existing cache
+    driver.execute_cdp_cmd('Network.clearBrowserCache', {})
+    driver.execute_cdp_cmd('Network.clearBrowserCookies', {})
+    
     return driver
 
 def parse_and_save_to_csv(text_content):
@@ -94,7 +101,8 @@ def scrape_facebook_report(url):
     try:
         print("Accessing the page...")
         driver.get(url)
-        time.sleep(5)
+        print("Waiting for page to load completely...")
+        time.sleep(10)  # Increased wait time
         
         # Only get the content once
         all_divs = driver.find_elements(By.TAG_NAME, "div")
