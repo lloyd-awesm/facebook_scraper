@@ -91,13 +91,24 @@ def parse_and_save_to_csv(text_content):
                     cost
                 ])
     
+    # Check if there is data to save
     if data:
         df = pd.DataFrame(data, columns=['Campaign name', 'Ad Set Name', 'Day', 'Results', 'Amount spent', 'Cost per result'])
-        df.to_csv('facebook_report.csv', index=False)
+        file_path = 'facebook_report.csv'
+        df.to_csv(file_path, index=False)
+        
+        # Debugging: Print file path and check if it exists
+        print(f"CSV file saved at: {os.path.abspath(file_path)}")
+        if os.path.exists(file_path):
+            print("File exists!")
+        else:
+            print("File was not created.")
+        
         print(f"\nSaved {len(df)} rows to facebook_report.csv")
         print("\nFirst few rows:")
         print(df.head())
         return df
+    
     return None
 
 def scrape_facebook_report(url):
@@ -106,33 +117,19 @@ def scrape_facebook_report(url):
         print("Accessing the page...")
         driver.get(url)
         print("Waiting for page to fully load...")
+        time.sleep(15)  # Increased wait time
         
-        # Wait for date range to be visible and print it
-        time.sleep(15)
-        date_range = driver.find_element(By.CSS_SELECTOR, "[aria-label*='Date range']")
-        print(f"Found date range: {date_range.text}")
-        
-        # Force table to expand
-        try:
-            show_more = driver.find_element(By.XPATH, "//div[contains(text(), 'Show more')]")
-            driver.execute_script("arguments[0].click();", show_more)
-            print("Clicked 'Show more' button")
-            time.sleep(5)
-        except:
-            print("No 'Show more' button found")
-        
-        # Scroll multiple times with pauses
-        for i in range(3):
+        # Scroll to ensure all content is loaded
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        while True:
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(3)
-            driver.execute_script("window.scrollTo(0, 0);")
             time.sleep(2)
-            print(f"Completed scroll iteration {i+1}")
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
         
-        # Take debug screenshot
-        driver.save_screenshot("before_extraction.png")
-        
-        # Get content after ensuring everything is loaded
+        # Only get the content once
         all_divs = driver.find_elements(By.TAG_NAME, "div")
         longest_content = ""
         
@@ -140,7 +137,7 @@ def scrape_facebook_report(url):
             try:
                 text = div.text
                 if "BOF - Leads" in text:
-                    print(f"Found content length: {len(text)}")
+                    # Keep the longest content that contains our data
                     if len(text) > len(longest_content):
                         longest_content = text
             except:
@@ -148,9 +145,7 @@ def scrape_facebook_report(url):
         
         if longest_content:
             print("\nFound relevant content:")
-            print(f"Total content length: {len(longest_content)}")
-            print("Content preview:")
-            print(longest_content[:500] + "...")
+            print(longest_content[:200] + "...")  # Print preview
             return parse_and_save_to_csv(longest_content)
             
         return None
@@ -161,7 +156,7 @@ def scrape_facebook_report(url):
         print(traceback.format_exc())
     finally:
         driver.save_screenshot("final_state.png")
-        print("Saved final screenshot")
+        print("Saved screenshot")
         driver.quit()
 
 if __name__ == "__main__":
