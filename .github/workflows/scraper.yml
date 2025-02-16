@@ -43,24 +43,11 @@ jobs:
         run: |
           test -f facebook_report.csv && echo "File exists" || echo "File not found"
       
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          cat ~/.ssh/id_ed25519 || echo "Failed to write private key"
-          ssh-keygen -y -f ~/.ssh/id_ed25519 || echo "Failed to load private key"
-      
-      - name: Test SSH connection
-        run: |
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          ssh -T git@github.com || echo "SSH connection failed"
-      
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git remote set-url origin git@github.com:lloyd-awesm/facebook_scraper.git
+          git remote set-url origin https://github.com/lloyd-awesm/facebook_scraper.git
           git add facebook_report.csv final_state.png
           git commit -m "Update Facebook report and debug screenshots" || echo "No changes to commit"
           git pull --rebase origin main
