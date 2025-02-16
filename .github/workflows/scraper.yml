@@ -7,13 +7,14 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      
+
       - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
@@ -21,21 +22,19 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Run scraper
         env:
           REPORT_URL: ${{ secrets.REPORT_URL }}
-        run: python main.py || echo "Scraper failed"
+        run: |
+          python main.py || echo "Scraper failed"
         continue-on-error: true
-      
+
       - name: List files
         run: ls -R
 
@@ -52,12 +51,6 @@ jobs:
           ls -lh final_state.png
           test -s final_state.png && echo "File is not empty" || echo "File is empty"
 
-      - name: Upload debug screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: final_state.png
-
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions"
@@ -69,3 +62,9 @@ jobs:
           git commit -m "Update Facebook report and debug screenshots" || echo "No changes to commit"
           git pull --rebase origin main
           git push
+
+      - name: Upload debug screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: final_state.png
