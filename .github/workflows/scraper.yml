@@ -32,7 +32,7 @@ jobs:
 
       - name: Upload Debug Files
         if: always()  # Always upload files, even if script fails
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-files
           path: |
@@ -40,9 +40,4 @@ jobs:
             table_loaded.png
 
       - name: Commit and push if there are changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -f facebook_report.csv table_loaded.png page_source.html || echo "No files to add"
-          git commit -m "Update Facebook report data" || echo "No changes to commit"
-          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || echo "Nothing to push"
+   
