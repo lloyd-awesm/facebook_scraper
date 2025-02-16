@@ -116,47 +116,67 @@ def scrape_facebook_report(url):
     try:
         print("Accessing the page...")
         driver.get(url)
-        print("Waiting for page to fully load...")
-        time.sleep(15)  # Increased wait time
+        print("Waiting for initial load...")
+        time.sleep(15)  # Initial wait
         
-        # Scroll to ensure all content is loaded
-        last_height = driver.execute_script("return document.body.scrollHeight")
-        while True:
+        print("Page title:", driver.title)
+        print("Current URL:", driver.current_url)
+        
+        # Save initial state
+        driver.save_screenshot("initial_load.png")
+        print("Initial page height:", driver.execute_script("return document.body.scrollHeight"))
+        
+        # Scroll multiple times with pauses
+        print("\nStarting scroll sequence...")
+        for i in range(5):
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            new_height = driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
+            time.sleep(3)
+            print(f"Scroll {i+1} complete")
+            driver.save_screenshot(f"scroll_{i+1}.png")
+            
+        print("\nWaiting for final content load...")
+        time.sleep(5)
         
-        # Only get the content once
+        # Try to find table content
+        print("\nSearching for content...")
         all_divs = driver.find_elements(By.TAG_NAME, "div")
+        print(f"Found {len(all_divs)} total div elements")
+        
         longest_content = ""
+        content_found = 0
         
         for div in all_divs:
             try:
                 text = div.text
                 if "BOF - Leads" in text:
-                    # Keep the longest content that contains our data
+                    content_found += 1
+                    print(f"\nFound content block {content_found}, length: {len(text)}")
                     if len(text) > len(longest_content):
                         longest_content = text
-            except:
+                        print(f"New longest content found: {len(text)} characters")
+            except Exception as e:
+                print(f"Error processing div: {e}")
                 continue
         
         if longest_content:
-            print("\nFound relevant content:")
-            print(longest_content[:200] + "...")  # Print preview
+            print("\nFinal content stats:")
+            print(f"Total length: {len(longest_content)} characters")
+            print("Content preview:")
+            print(longest_content[:500] + "...")
             return parse_and_save_to_csv(longest_content)
-            
-        return None
+        else:
+            print("\nNo relevant content found!")
+            return None
 
     except Exception as e:
-        print(f"Error occurred: {e}")
+        print(f"\nError occurred: {e}")
+        print("Full error details:")
         import traceback
         print(traceback.format_exc())
     finally:
+        print("\nTaking final screenshot...")
         driver.save_screenshot("final_state.png")
-        print("Saved screenshot")
+        print("All screenshots saved")
         driver.quit()
 
 if __name__ == "__main__":
