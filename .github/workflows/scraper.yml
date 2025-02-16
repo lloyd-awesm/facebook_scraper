@@ -42,19 +42,30 @@ jobs:
       - name: Check if CSV file exists
         run: |
           test -f facebook_report.csv && echo "File exists" || echo "File not found"
-      
+
+      - name: Print facebook_report.csv content
+        run: |
+          cat facebook_report.csv
+
+      - name: Check final_state.png size
+        run: |
+          ls -lh final_state.png
+          test -s final_state.png && echo "File is not empty" || echo "File is empty"
+
+      - name: Upload debug screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: final_state.png
+
       - name: Commit and push changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git remote set-url origin https://github.com/lloyd-awesm/facebook_scraper.git
           git add facebook_report.csv final_state.png
+          git status  # Show the current state of the repository
+          git diff --staged  # Show the changes to be committed
           git commit -m "Update Facebook report and debug screenshots" || echo "No changes to commit"
           git pull --rebase origin main
           git push
-      
-      - name: Upload debug screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: final_state.png
