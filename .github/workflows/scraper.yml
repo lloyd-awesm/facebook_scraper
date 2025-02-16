@@ -49,6 +49,7 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           cat ~/.ssh/id_ed25519 || echo "Failed to write private key"
+          ssh-keygen -y -f ~/.ssh/id_ed25519 || echo "Failed to load private key"
       
       - name: Test SSH connection
         run: |
