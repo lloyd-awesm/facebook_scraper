@@ -52,7 +52,7 @@ jobs:
           git push
       
       - name: Upload debug screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-screenshots
           path: final_state.png
