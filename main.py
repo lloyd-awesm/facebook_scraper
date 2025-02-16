@@ -21,20 +21,17 @@ def setup_driver():
     chrome_options.add_argument("--disable-cache")
     chrome_options.add_argument("--disable-application-cache")
     chrome_options.add_argument("--disable-browser-side-navigation")
-    
+
     # Mimic a real browser to prevent blocking
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     )
 
-    # Initialize driver
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    # Enable JavaScript execution and clear browser cache/cookies
-    driver.execute_cdp_cmd("Network.enable", {})
-    driver.execute_cdp_cmd("Network.clearBrowserCache", {})
-    driver.execute_cdp_cmd("Network.clearBrowserCookies", {})
+    # Set a large window size
+    driver.set_window_size(1920, 1080)
 
     return driver
 
@@ -94,19 +91,24 @@ def scrape_facebook_report(url):
         print("Accessing the page...")
         driver.get(url)
 
-        # Wait up to 60 seconds for the report table to load
+        # Ensure the table is fully loaded
         print("Waiting for the report table to load...")
         WebDriverWait(driver, 60).until(
             EC.presence_of_element_located((By.TAG_NAME, "table"))
         )
+        time.sleep(5)  # Additional wait to ensure data loads
 
-        print("Table detected, capturing data...")
-        time.sleep(5)  # Buffer to ensure all data is loaded
+        # Scroll down multiple times to trigger lazy loading
+        print("Scrolling page to load all data...")
+        for _ in range(3):
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
 
-        # Save screenshot for debugging
-        driver.save_screenshot("table_loaded.png")
+        # Take a final screenshot
+        driver.save_screenshot("final_stage.png")
+        print("Final screenshot saved as final_stage.png")
 
-        # Save the full page source for debugging
+        # Save the full page HTML for debugging
         page_source = driver.page_source
         with open("page_source.html", "w", encoding="utf-8") as f:
             f.write(page_source)
