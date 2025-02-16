@@ -1,103 +1,71 @@
 import os
 import time
-import csv
+import logging
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
-# --------------------- Setup Selenium WebDriver --------------------- #
-def setup_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")  # Ensures modern headless mode
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-cache")
-    chrome_options.add_argument("--disable-application-cache")
-    chrome_options.add_argument("--disable-browser-side-navigation")
+# Load environment variables
+load_dotenv()
+FB_USERNAME = os.getenv("FB_USERNAME")
+FB_PASSWORD = os.getenv("FB_PASSWORD")
+REPORT_URL = os.getenv("REPORT_URL")
 
-    # Set user-agent to mimic a real browser
-    chrome_options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    )
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+# Setup Chrome options
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--window-size=1920,1080")
 
-    # Set a large window size
-    driver.set_window_size(1920, 1080)
+# 🚨 Temporary: Disable headless mode for debugging (Uncomment if needed)
+# chrome_options.add_argument("--headless=new")
 
-    return driver
+# Initialize WebDriver
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# --------------------- Extract Report Data --------------------- #
-def scrape_facebook_report(driver, report_url):
-    print("Accessing the page...")
-    driver.get(report_url)
+try:
+    logging.info("Accessing the page...")
+    driver.get(REPORT_URL)
 
+    # Handle Facebook Login if needed
+    if FB_USERNAME and FB_PASSWORD:
+        try:
+            logging.info("Attempting to log in to Facebook...")
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "email"))).send_keys(FB_USERNAME)
+            driver.find_element(By.ID, "pass").send_keys(FB_PASSWORD)
+            driver.find_element(By.NAME, "login").click()
+            logging.info("Login submitted, waiting for redirection...")
+            time.sleep(5)  # Allow time for login redirection
+        except NoSuchElementException:
+            logging.warning("Login fields not found. Skipping login step.")
+
+    # Wait for the report table to load
     try:
-        print("Waiting for the report table to load...")
-        table = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.TAG_NAME, "table"))
-        )
-
-        # Take screenshot for debugging
-        driver.save_screenshot("table_loaded.png")
-
-        # Save page source for debugging
+        logging.info("Waiting for the report table to load...")
+        table = WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+        logging.info("Report table found, extracting data...")
+        
+        # Extract table content
+        table_html = table.get_attribute("outerHTML")
         with open("page_source.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
+            f.write(table_html)
 
-        print("Extracting table data...")
+    except TimeoutException:
+        logging.error("Timed out waiting for the report table.")
+        raise
 
-        # Extract data from table
-        rows = table.find_elements(By.TAG_NAME, "tr")
-        extracted_data = []
+except Exception as e:
+    logging.error(f"Error occurred: {e}")
 
-        for row in rows:
-            cols = row.find_elements(By.TAG_NAME, "td")
-            row_data = [col.text.strip() for col in cols]
-            if row_data:  # Ensure empty rows are ignored
-                extracted_data.append(row_data)
-
-        print(f"Extracted {len(extracted_data)} rows.")
-
-        return extracted_data
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        return None
-
-# --------------------- Save Data to CSV --------------------- #
-def save_to_csv(data, filename="facebook_report.csv"):
-    if not data:
-        print("No data to save.")
-        return
-
-    headers = ["Campaign Name", "Ad Set Name", "Date", "Results", "Amount Spent", "Cost per Result"]
-
-    with open(filename, mode="w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerow(headers)  # Writing header row
-        writer.writerows(data)
-
-    print(f"Data saved to {filename}.")
-
-# --------------------- Main Execution --------------------- #
-if __name__ == "__main__":
-    REPORT_URL = os.getenv("REPORT_URL")
-
-    if not REPORT_URL:
-        print("ERROR: REPORT_URL environment variable is missing.")
-        exit(1)
-
-    driver = setup_driver()
-
-    try:
-        extracted_data = scrape_facebook_report(driver, REPORT_URL)
-        save_to_csv(extracted_data)
-    finally:
-        print("Closing the browser...")
-        driver.quit()
+finally:
+    logging.info("Closing the browser...")
+    driver.quit()
