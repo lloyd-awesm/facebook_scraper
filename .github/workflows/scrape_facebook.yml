@@ -1,14 +1,15 @@
-name: Facebook Scraper
+name: Facebook Report Scraper
 
 on:
-  workflow_dispatch:  # Allows manual trigger
+  push:
+    branches:
+      - main
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -16,28 +17,20 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: pip install selenium pandas webdriver-manager
 
-      - name: Run Scraper
+      - name: Run Facebook Scraper
         run: python extract_facebook_report.py
 
-      - name: Verify Changes in CSV
-        run: |
-          if [ -f "facebook_report.csv" ]; then
-            echo "✅ CSV file exists. Checking for changes..."
-            git add facebook_report.csv
-            git status
-            if git diff --staged --quiet; then
-              echo "⚠️ No changes detected in facebook_report.csv, skipping commit."
-            else
-              git config --global user.name "github-actions"
-              git config --global user.email "actions@github.com"
-              git commit -m "Updated Facebook report"
-              git push
-              echo "✅ Changes committed and pushed."
-            fi
-          else
-            echo "❌ Error: facebook_report.csv not found!"
-            exit 1
-          fi
+      - name: Debug file existence
+        run: ls -lh
+
+      - name: Upload screenshot as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: |
+            page_loaded.png
+            page_loaded_2.png
+            ~/page_loaded_3.png
