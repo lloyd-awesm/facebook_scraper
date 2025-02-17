@@ -10,11 +10,25 @@ import time
 
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--headless")  # Run without a GUI
+    chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resources
+    chrome_options.add_argument("--disable-gpu")  # Disable GPU acceleration (not needed in headless)
+    chrome_options.add_argument("--window-size=1920,1080")  
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Prevent detection
+    chrome_options.add_argument("--remote-debugging-port=9222")  # Enable debugging
+    chrome_options.add_argument("--disable-extensions")  # Disable extensions
+    chrome_options.add_argument("--disable-infobars")  # Remove info bars
+    chrome_options.add_argument("--disable-popup-blocking")  # Ensure pop-ups don't block actions
+
+    # **This fixes the user-data-dir issue**
+    chrome_options.add_argument("--user-data-dir=/tmp/chrome-user-data")
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     return driver
+
 
 def parse_and_save_to_csv(text_content):
     lines = text_content.split('\n')
