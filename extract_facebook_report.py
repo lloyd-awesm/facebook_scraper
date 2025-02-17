@@ -1,3 +1,4 @@
+import os
 import time
 import pandas as pd
 from selenium import webdriver
@@ -7,23 +8,30 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 def scrape_facebook_report(url):
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Runs Chrome in headless mode
-    chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
-    chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resources
-    chrome_options.add_argument("--remote-debugging-port=9222")  # Debugging support
+    chrome_options.add_argument("--headless")  
+    chrome_options.add_argument("--no-sandbox")  
+    chrome_options.add_argument("--disable-dev-shm-usage")  
+    chrome_options.add_argument("--remote-debugging-port=9222")  
 
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    
+
     try:
         driver.get(url)
         print("🔍 Accessing the page...")
-        time.sleep(5)  # Allow page to load
+        time.sleep(5)
 
-        # 📸 Save screenshot to verify page load (even in headless mode)
-        driver.save_screenshot("page_loaded.png")
-        print("📸 Saved screenshot of the page load")
+        # ✅ Save screenshot to verify page load
+        screenshot_path = os.path.join(os.getcwd(), "page_loaded.png")
+        driver.save_screenshot(screenshot_path)
+        print(f"📸 Screenshot saved at: {screenshot_path}")
 
-        # Dummy Data for Testing (Replace with actual scraping logic)
+        # Verify if the file exists
+        if os.path.exists(screenshot_path):
+            print("✅ Screenshot exists!")
+        else:
+            print("❌ Screenshot was NOT created!")
+
+        # Dummy Data for Testing
         data = {
             "Campaign": ["Test Campaign 1", "Test Campaign 2"],
             "Spend": [100, 200]
