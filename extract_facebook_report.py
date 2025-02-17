@@ -20,16 +20,27 @@ def scrape_facebook_report(url):
         print("🔍 Accessing the page...")
         time.sleep(5)
 
-        # ✅ Save screenshot to verify page load
-        screenshot_path = os.path.join(os.getcwd(), "page_loaded.png")
-        driver.save_screenshot(screenshot_path)
-        print(f"📸 Screenshot saved at: {screenshot_path}")
+        # ✅ Print current working directory
+        cwd = os.getcwd()
+        print(f"📂 Current Directory: {cwd}")
 
-        # Verify if the file exists
-        if os.path.exists(screenshot_path):
-            print("✅ Screenshot exists!")
-        else:
-            print("❌ Screenshot was NOT created!")
+        # ✅ Force Screenshot Save in Different Ways
+        screenshot_path = os.path.join(cwd, "page_loaded.png")
+        driver.save_screenshot(screenshot_path)
+        print(f"📸 Screenshot attempt 1: {screenshot_path}")
+
+        driver.save_screenshot("./page_loaded_2.png")
+        print("📸 Screenshot attempt 2: page_loaded_2.png")
+
+        driver.save_screenshot(os.path.expanduser("~/page_loaded_3.png"))
+        print("📸 Screenshot attempt 3: ~/page_loaded_3.png")
+
+        # ✅ Verify if screenshots exist
+        for filename in ["page_loaded.png", "page_loaded_2.png", os.path.expanduser("~/page_loaded_3.png")]:
+            if os.path.exists(filename):
+                print(f"✅ Screenshot saved successfully: {filename}")
+            else:
+                print(f"❌ Screenshot NOT found: {filename}")
 
         # Dummy Data for Testing
         data = {
