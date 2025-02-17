@@ -1,6 +1,5 @@
 import time
 import os
-import tempfile
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -9,9 +8,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# ========== CLEAN UP PREVIOUS CHROME SESSIONS ==========
-os.system("pkill -f chrome || true")  # Kills any running Chrome instances
-
 # ========== SETUP CHROME DRIVER ==========
 chrome_options = Options()
 chrome_options.add_argument("--no-sandbox")
@@ -19,43 +15,38 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--window-size=1920,1080")
 chrome_options.add_argument("--ignore-certificate-errors")
 chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--headless")  # Running in a non-GUI environment
 
-# 🔥 NEW: Ensure a unique user-data directory to prevent conflicts
-user_data_dir = tempfile.mkdtemp()
-chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
-
-# 🔥 NEW: Run Chrome headless in CI/CD environments (Comment out if debugging locally)
-chrome_options.add_argument("--headless")
-
-# ========== INITIALIZE CHROME DRIVER ==========
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=chrome_options)
+# Start WebDriver
+print("🚀 Starting Chrome WebDriver...")
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
 try:
-    # ========== NAVIGATE TO TARGET WEBSITE ==========
-    url = "https://www.example.com"  # Change this to the target website
+    url = "https://www.facebook.com/adsviewreport/?saved_report_id=120216194126900650&client_creation_value=f54f992787004415e"  # Change to actual target URL
+    print(f"🌍 Navigating to {url}...")
     driver.get(url)
 
-    print(f"✅ Successfully opened {url}")
-    print("Page Title:", driver.title)
+    # Wait for an element to confirm the page is loaded
+    wait = WebDriverWait(driver, 10)
+    element = wait.until(EC.presence_of_element_located((By.XPATH, "your_xpath_here")))
 
-    # ========== WAIT FOR AN ELEMENT TO LOAD ==========
-    try:
-        wait = WebDriverWait(driver, 10)  # Max wait time: 10 sec
-        element = wait.until(EC.presence_of_element_located((By.TAG_NAME, "h1")))  # Adjust selector as needed
-        print(f"🎯 Found element: {element.text}")
-    except Exception as e:
-        print(f"⚠️ Element not found: {e}")
+    print("✅ Page loaded successfully!")
 
-    # ========== SCREENSHOT (Optional Debugging) ==========
-    screenshot_path = "screenshot.png"
-    driver.save_screenshot(screenshot_path)
-    print(f"📸 Screenshot saved: {screenshot_path}")
+    # Save page source for debugging
+    with open("page_source.html", "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
+    print("📄 Saved page source to page_source.html")
+
+    # Extract data and save to CSV
+    # (Replace this with your actual data extraction code)
+    extracted_data = "dummy_data"
+    with open("facebook_report.csv", "w", encoding="utf-8") as f:
+        f.write("header1,header2\n")
+        f.write(f"{extracted_data},updated\n")
+    print("📊 Data extracted and saved to facebook_report.csv")
 
 except Exception as e:
     print(f"❌ Error: {e}")
-
 finally:
-    # ========== CLOSE DRIVER ==========
     driver.quit()
     print("🚀 Chrome session closed successfully.")
